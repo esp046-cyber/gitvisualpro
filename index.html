@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1117">
+<meta name="description" content="Git Visual Pro - Learn Git and GitHub visually">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Git Visual Pro</title>
+<style>
+  /* ===== DESIGN TOKENS ===== */
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2430;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --accent5: #ffa657;
+    --warn: #f0883e;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --radius: 12px;
+    --nav-h: 64px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  /* ===== RESET ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: var(--nav-h);
+  }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ===== PAGE SYSTEM ===== */
+  .page { display: none; min-height: calc(100vh - var(--nav-h)); }
+  .page.active { display: block; }
+  /* directional slide animations */
+  .page.slide-in-right  { animation: slideInRight  0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .page.slide-in-left   { animation: slideInLeft   0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .page.slide-out-right { animation: slideOutRight 0.22s ease-in forwards; position: fixed; top: 0; left: 0; right: 0; pointer-events: none; }
+  .page.slide-out-left  { animation: slideOutLeft  0.22s ease-in forwards; position: fixed; top: 0; left: 0; right: 0; pointer-events: none; }
+  @keyframes slideInRight  { from { opacity:0; transform:translateX(40px);  } to { opacity:1; transform:none; } }
+  @keyframes slideInLeft   { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:none; } }
+  @keyframes slideOutRight { from { opacity:1; transform:none; } to { opacity:0; transform:translateX(40px);  } }
+  @keyframes slideOutLeft  { from { opacity:1; transform:none; } to { opacity:0; transform:translateX(-40px); } }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: rgba(22,27,34,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-around;
+    z-index: 1000;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer; padding: 8px 12px; border-radius: 10px;
+    transition: color 0.2s ease, background 0.2s ease; flex: 1; max-width: 80px;
+    border: none; background: none; color: var(--text2);
+    position: relative; overflow: hidden;
+  }
+  .nav-item.active { color: var(--accent); }
+  .nav-item:hover { color: var(--text); background: rgba(88,166,255,0.08); }
+  /* ripple layer */
+  .nav-item::before {
+    content: ''; position: absolute;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(88,166,255,0.18);
+    transform: scale(0); opacity: 0;
+    left: 50%; top: 50%; translate: -50% -50%;
+    pointer-events: none;
+  }
+  .nav-item.rippling::before {
+    animation: navRipple 0.45s ease-out forwards;
+  }
+  @keyframes navRipple {
+    0%   { transform: scale(0); opacity: 1; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  /* icon bounce when becoming active */
+  .nav-item.active .nav-icon { animation: navBounce 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes navBounce {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(0.8) translateY(2px); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  .nav-icon { font-size: 20px; line-height: 1; position: relative; }
+  .nav-item.active .nav-icon::after {
+    content: '';
+    position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent);
+    animation: dotPop 0.3s ease;
+  }
+  @keyframes dotPop { from { transform: translateX(-50%) scale(0); } to { transform: translateX(-50%) scale(1); } }
+  .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+
+  /* ===== COMMON COMPONENTS ===== */
+  .container { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+  .section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .card:hover {
+    border-color: rgba(88,166,255,0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(88,166,255,0.08);
+  }
+  .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--accent2); }
+  .badge-red { background: rgba(247,129,102,0.15); color: var(--accent3); }
+  .badge-purple { background: rgba(210,168,255,0.15); color: var(--accent4); }
+  .badge-orange { background: rgba(255,166,87,0.15); color: var(--accent5); }
+
+  code {
+    font-family: var(--mono); font-size: 13px;
+    background: rgba(88,166,255,0.1); color: var(--accent);
+    padding: 2px 6px; border-radius: 4px;
+  }
+  .code-block {
+    background: #010409; border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin: 12px 0;
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    overflow-x: auto; position: relative;
+  }
+  .code-block .comment { color: #6e7681; }
+  .code-block .cmd { color: var(--accent2); }
+  .code-block .arg { color: var(--accent5); }
+  .code-block .output { color: var(--text2); }
+
+  /* ===== COPY BUTTON ===== */
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 9px;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    cursor: pointer; transition: all 0.15s ease;
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--font);
+    opacity: 0;
+    z-index: 2;
+  }
+  .code-block:hover .copy-btn { opacity: 1; }
+  .copy-btn:hover { background: rgba(88,166,255,0.12); border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied {
+    background: rgba(63,185,80,0.15); border-color: var(--accent2); color: var(--accent2);
+    animation: copyPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes copyPop { 0% { transform: scale(0.85); } 100% { transform: scale(1); } }
+
+  /* ===== SOUND TOGGLE ===== */
+  .sound-toggle {
+    position: fixed; bottom: calc(var(--nav-h) + 12px); right: 14px;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer; z-index: 999;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  .sound-toggle:hover { border-color: var(--accent); transform: scale(1.1); }
+  .sound-toggle.muted { opacity: 0.45; }
+  .sound-toggle .sound-tooltip {
+    position: absolute; right: calc(100% + 8px); top: 50%;
+    transform: translateY(-50%); white-space: nowrap;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text2);
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .sound-toggle:hover .sound-tooltip { opacity: 1; }
+
+  /* ===== HINT TOOLTIP ===== */
+  .hint-bubble {
+    position: fixed; z-index: 900;
+    background: linear-gradient(135deg, #1c2430, #1a2540);
+    border: 1px solid rgba(88,166,255,0.35);
+    border-radius: 12px; padding: 10px 14px;
+    font-size: 12px; font-weight: 600; color: var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(88,166,255,0.08);
+    display: flex; align-items: center; gap: 8px;
+    max-width: 220px; line-height: 1.4;
+    animation: hintSlideIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    pointer-events: none;
+  }
+  .hint-bubble::after {
+    content: '';
+    position: absolute; bottom: -7px; left: 24px;
+    border: 6px solid transparent;
+    border-top-color: rgba(88,166,255,0.35);
+  }
+  .hint-bubble .hint-icon { font-size: 18px; flex-shrink: 0; }
+  .hint-bubble.hint-hide { animation: hintSlideOut 0.3s ease forwards; }
+  @keyframes hintSlideIn  { from { opacity:0; transform:translateY(-10px) scale(0.92); } to { opacity:1; transform:none; } }
+  @keyframes hintSlideOut { from { opacity:1; transform:none; } to { opacity:0; transform:translateY(-6px) scale(0.95); } }
+
+  .tip {
+    background: rgba(63,185,80,0.08); border-left: 3px solid var(--accent2);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0;
+    font-size: 14px; color: var(--text2);
+  }
+  .tip strong { color: var(--accent2); }
+
+  .info {
+    background: rgba(88,166,255,0.08); border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 12px 0;
+    font-size: 14px; color: var(--text2);
+  }
+
+  /* ===== HERO (HOME) ===== */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #1a2030 50%, #0d1117 100%);
+    padding: 48px 20px 32px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(88,166,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-logo {
+    font-size: 56px; margin-bottom: 12px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .hero h1 { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent4)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { color: var(--text2); font-size: 15px; margin-top: 8px; max-width: 360px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+  .progress-bar-wrap { margin: 24px 16px; background: var(--surface); border-radius: 20px; height: 6px; }
+  .progress-bar {
+    height: 6px; border-radius: 20px;
+    background: linear-gradient(90deg, var(--accent), var(--accent4));
+    transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+  /* glow pulse triggered via class */
+  .progress-bar.updated::after {
+    content: '';
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent4);
+    animation: barGlow 0.7s ease-out forwards;
+  }
+  @keyframes barGlow {
+    0%   { box-shadow: 0 0 0 0 rgba(210,168,255,0.8); opacity: 1; }
+    100% { box-shadow: 0 0 0 12px rgba(210,168,255,0); opacity: 0; }
+  }
+  .progress-label { font-size: 12px; color: var(--text2); text-align: center; margin-top: 6px; }
+
+  .topic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px 16px; }
+  .topic-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    cursor: pointer; transition: all 0.2s;
+    text-align: center;
+  }
+  .topic-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .topic-card .icon { font-size: 28px; margin-bottom: 6px; }
+  .topic-card h4 { font-size: 13px; font-weight: 700; }
+  .topic-card p { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  /* ===== CONCEPT VISUAL ===== */
+  .concept-visual { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .concept-visual h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+
+  /* ===== GIT WORKFLOW SVG ===== */
+  .workflow-svg { width: 100%; overflow: visible; }
+
+  /* ===== STAGING AREA VISUAL ===== */
+  .staging-demo {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    margin: 12px 0;
+  }
+  .stage-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; text-align: center; min-height: 80px;
+    transition: all 0.3s;
+  }
+  .stage-box.highlight { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+  .stage-box h5 { font-size: 11px; font-weight: 700; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .file-chip {
+    display: inline-block; background: rgba(63,185,80,0.15);
+    color: var(--accent2); border-radius: 4px; padding: 2px 6px;
+    font-size: 11px; font-family: var(--mono); margin: 2px;
+    cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s, color 0.2s;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .file-chip:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(63,185,80,0.25); }
+  .file-chip:active { transform: scale(0.92); }
+  .file-chip.staged { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .file-chip.committed { background: rgba(210,168,255,0.15); color: var(--accent4); }
+  /* snap-in animation when chip appears in a new zone */
+  .file-chip.snap-in { animation: chipSnap 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes chipSnap {
+    0%   { transform: scale(0.4) translateY(-8px); opacity: 0; }
+    100% { transform: scale(1) translateY(0);      opacity: 1; }
+  }
+
+  .stage-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--accent); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  /* ===== COMMIT DOT PULSE + TOOLTIP ===== */
+  .commit-dot { cursor: pointer; }
+  .commit-dot circle { transition: r 0.2s, fill 0.2s; }
+  .commit-dot:hover circle:first-of-type { r: 12; }
+  /* pulse ring via SVG animate is already inline; add CSS tooltip */
+  .commit-dot-wrap { position: relative; display: inline-block; }
+
+  /* SVG tooltip */
+  .svg-tooltip {
+    position: absolute;
+    background: #1c2430; border: 1px solid var(--accent);
+    border-radius: 8px; padding: 6px 10px;
+    font-size: 12px; color: var(--text);
+    pointer-events: none; white-space: nowrap;
+    opacity: 0; transform: translateY(6px) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100; bottom: calc(100% + 8px); left: 50%; translate: -50% 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  }
+  .svg-tooltip.visible { opacity: 1; transform: translateY(0) scale(1); }
+  .svg-tooltip::after {
+    content: ''; position: absolute; top: 100%; left: 50%; translate: -50% 0;
+    border: 5px solid transparent; border-top-color: var(--accent);
+  }
+
+  /* pulse ring on commit dots — applied via JS */
+  @keyframes pulseRing {
+    0%   { stroke-width: 3; stroke-opacity: 0.8; r: 12; }
+    100% { stroke-width: 1; stroke-opacity: 0;   r: 22; }
+  }
+
+  /* ===== BRANCHING ===== */
+  #branch-svg { width: 100%; overflow: visible; }
+
+  /* ===== PLAYGROUND ===== */
+  .playground-terminal {
+    background: #010409; border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+    font-family: var(--mono); font-size: 13px; min-height: 180px;
+    max-height: 280px; overflow-y: auto;
+  }
+  .terminal-line { margin: 2px 0; line-height: 1.5; }
+  .terminal-line.cmd-line::before { content: '$ '; color: var(--accent2); }
+  .terminal-line.cmd-line { color: var(--accent); }
+  .terminal-line.out-line { color: var(--text2); }
+  .terminal-line.err-line { color: var(--accent3); }
+
+  .cmd-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .cmd-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 6px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.1s;
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 0 0 0 rgba(88,166,255,0);
+  }
+  .cmd-btn:hover {
+    border-color: var(--accent); background: rgba(88,166,255,0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.4), 0 0 14px rgba(88,166,255,0.2);
+  }
+  .cmd-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.4), 0 0 6px rgba(88,166,255,0.1);
+  }
+
+  .playground-vis { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .playground-vis h4 { font-size: 13px; font-weight: 700; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+
+  #pg-tree-svg { width: 100%; overflow: visible; }
+
+  .explanation-panel {
+    background: rgba(88,166,255,0.06); border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 8px; padding: 12px; margin-top: 12px;
+    font-size: 13px; color: var(--text2); line-height: 1.6;
+    min-height: 48px; transition: all 0.3s;
+  }
+  .explanation-panel strong { color: var(--accent); }
+
+  /* ===== QUIZ ===== */
+  .quiz-header { text-align: center; padding: 24px 16px; }
+  .quiz-header h2 { font-size: 24px; font-weight: 800; }
+  .quiz-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+  .score-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px 16px;
+  }
+  .score-pill {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 16px; font-size: 13px;
+    font-weight: 700; color: var(--accent);
+  }
+
+  .quiz-card { padding: 0 16px 16px; }
+  .question-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+  }
+  .question-box .q-num { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .question-box .q-text { font-size: 15px; font-weight: 600; line-height: 1.5; margin-bottom: 16px; }
+
+  .answer-options { display: flex; flex-direction: column; gap: 8px; }
+  .answer-option {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+    font-size: 14px; text-align: left;
+    color: var(--text);
+  }
+  .answer-option:hover { border-color: var(--accent); background: rgba(88,166,255,0.08); }
+  .answer-option.correct {
+    border-color: var(--accent2); background: rgba(63,185,80,0.12); color: var(--accent2);
+    animation: answerBounce 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .answer-option.wrong {
+    border-color: var(--accent3); background: rgba(247,129,102,0.12); color: var(--accent3);
+    animation: answerShake 0.4s ease;
+  }
+  .answer-option:disabled { cursor: default; }
+  @keyframes answerBounce {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.04); }
+    60%  { transform: scale(0.97); }
+    100% { transform: scale(1); }
+  }
+  @keyframes answerShake {
+    0%,100% { transform: translateX(0); }
+    18%     { transform: translateX(-6px); }
+    36%     { transform: translateX(6px); }
+    54%     { transform: translateX(-4px); }
+    72%     { transform: translateX(4px); }
+  }
+
+  .quiz-nav { display: flex; gap: 8px; padding: 0 16px 24px; }
+  .btn {
+    flex: 1; padding: 12px; border-radius: 8px; border: none;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #79b8ff; }
+  .btn-secondary { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .quiz-result {
+    text-align: center; padding: 32px 16px;
+    animation: fadeIn 0.5s ease;
+  }
+  .quiz-result .result-emoji { font-size: 64px; margin-bottom: 16px; animation: float 2s infinite; }
+  .quiz-result h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .quiz-result p { color: var(--text2); font-size: 15px; margin-bottom: 24px; }
+  .result-score { font-size: 48px; font-weight: 900; color: var(--accent); }
+
+  /* ===== CONFETTI ===== */
+  .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden; }
+  .confetti-piece {
+    position: absolute;
+    animation: confettiFall var(--dur) ease-in forwards;
+    opacity: 0;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-20px) translateX(0)              rotate(0deg);         opacity: 1; }
+    60%  { opacity: 1; }
+    100% { transform: translateY(100vh)  translateX(var(--drift))  rotate(var(--rot));   opacity: 0; }
+  }
+
+  /* ===== ACCORDION ===== */
+  .accordion { margin-bottom: 8px; }
+  .accordion-header {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 0.2s; font-weight: 600; font-size: 14px;
+  }
+  .accordion-header:hover { border-color: var(--accent); }
+  .accordion-header .acc-icon { transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); font-size: 18px; }
+  .accordion-header.open .acc-icon { transform: rotate(180deg); }
+  .accordion-body {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 var(--radius) var(--radius);
+    padding: 0; max-height: 0; overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.3s ease;
+  }
+  .accordion-body.open { max-height: 800px; padding: 16px; }
+  /* fade-in the inner content */
+  .accordion-body > * { opacity: 0; transform: translateY(6px); transition: opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s; }
+  .accordion-body.open > * { opacity: 1; transform: none; }
+
+  /* active state for branch step buttons */
+  .branch-step-btn.step-active {
+    border-color: var(--accent2) !important;
+    background: rgba(63,185,80,0.15) !important;
+    color: var(--accent2) !important;
+    box-shadow: 0 0 0 2px rgba(63,185,80,0.2), 0 3px 0 rgba(0,0,0,0.4) !important;
+  }
+  .branch-step-btn.step-active::after {
+    content: ' ✓';
+  }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+  .compare-col { background: var(--surface2); border-radius: var(--radius); padding: 14px; }
+  .compare-col h4 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+  .compare-col ul { list-style: none; font-size: 13px; color: var(--text2); }
+  .compare-col ul li { padding: 4px 0; }
+  .compare-col ul li::before { margin-right: 6px; }
+  .compare-col.git ul li::before { content: '⚡'; }
+  .compare-col.github ul li::before { content: '☁️'; }
+
+  /* ===== PR VISUAL ===== */
+  .pr-flow { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .pr-step {
+    background: var(--surface2); border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    border-left: 3px solid var(--border); transition: border-color 0.3s;
+    font-size: 13px;
+  }
+  .pr-step:hover { border-left-color: var(--accent); }
+  .pr-step .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(88,166,255,0.15); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; flex-shrink: 0;
+  }
+
+  /* ===== SCROLL REVEAL ===== */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 480px) {
+    .topic-grid { grid-template-columns: 1fr 1fr; }
+    .cmd-buttons { grid-template-columns: repeat(2, 1fr); }
+    .compare-grid { grid-template-columns: 1fr; }
+    .staging-demo { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== PAGES ===== -->
+
+<!-- HOME -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-logo">🌿</div>
+    <h1>Git Visual Pro</h1>
+    <p>Learn Git & GitHub through interactive visuals. No prior experience needed.</p>
+  </div>
+
+  <div style="padding: 16px 16px 0;">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="overall-progress" style="width: 0%"></div>
+    </div>
+    <div class="progress-label" id="progress-label">0 of 6 sections explored</div>
+  </div>
+
+  <div class="container" style="padding-top: 16px; padding-bottom: 8px;">
+    <div class="section-title">What You'll Learn</div>
+    <div class="card reveal">
+      <h3>🎯 Git in Plain English</h3>
+      <p>Git is a <strong>time machine for your code</strong>. It tracks every change you make, lets you go back to any point, and lets you work on multiple versions simultaneously.</p>
+    </div>
+    <div class="card reveal">
+      <h3>☁️ GitHub is the Cloud</h3>
+      <p>GitHub stores your Git history online, lets teams collaborate, and is the social network for developers. <strong>Git is the tool, GitHub is the platform.</strong></p>
+    </div>
+  </div>
+
+  <div class="topic-grid">
+    <div class="topic-card reveal" onclick="navigate('git')">
+      <div class="icon">📦</div>
+      <h4>Git Basics</h4>
+      <p>Core concepts</p>
+    </div>
+    <div class="topic-card reveal" onclick="navigate('branch')">
+      <div class="icon">🌿</div>
+      <h4>Branching</h4>
+      <p>Work in parallel</p>
+    </div>
+    <div class="topic-card reveal" onclick="navigate('github')">
+      <div class="icon">🐙</div>
+      <h4>GitHub</h4>
+      <p>Collaborate online</p>
+    </div>
+    <div class="topic-card reveal" onclick="navigate('playground')">
+      <div class="icon">🎮</div>
+      <h4>Playground</h4>
+      <p>Try commands</p>
+    </div>
+  </div>
+
+  <!-- Problem Git Solves -->
+  <div class="container" style="padding-top: 8px;">
+    <div class="section-title">The Problem Git Solves</div>
+    <div class="card reveal">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="background: rgba(247,129,102,0.08); border-radius: 8px; padding: 12px; border: 1px solid rgba(247,129,102,0.2);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--accent3); margin-bottom: 6px;">❌ Without Git</div>
+          <div style="font-family: var(--mono); font-size: 12px; color: var(--text2); line-height: 1.8;">
+            project_final.zip<br>
+            project_final_v2.zip<br>
+            project_ACTUALLY_final.zip<br>
+            project_final_FIXED.zip<br>
+            <span style="color: var(--accent3);">project_USE_THIS_ONE.zip</span>
+          </div>
+        </div>
+        <div style="text-align: center; font-size: 20px;">⬇️</div>
+        <div style="background: rgba(63,185,80,0.08); border-radius: 8px; padding: 12px; border: 1px solid rgba(63,185,80,0.2);">
+          <div style="font-size: 13px; font-weight: 700; color: var(--accent2); margin-bottom: 6px;">✅ With Git</div>
+          <div style="font-size: 13px; color: var(--text2); line-height: 1.8;">
+            One folder. Every version saved as a commit. Jump to any point instantly. Team of 50 working simultaneously — no chaos.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GIT BASICS -->
+<div id="page-git" class="page">
+  <div class="container">
+    <div style="padding: 8px 0 16px;">
+      <div class="section-title">Git Basics</div>
+      <h2 style="font-size: 22px; font-weight: 800;">Core Concepts</h2>
+    </div>
+
+    <!-- Visual Workflow -->
+    <div class="concept-visual reveal">
+      <h3>📍 The 3-Stage Model</h3>
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 14px;">Every file in Git lives in one of three places. Click files to move them!</p>
+      <div class="staging-demo">
+        <div class="stage-box" id="wd-box">
+          <h5>Working Dir</h5>
+          <div id="wd-files">
+            <span class="file-chip" onclick="stageFile(this, 'index.html')">index.html</span>
+            <span class="file-chip" onclick="stageFile(this, 'style.css')">style.css</span>
+            <span class="file-chip" onclick="stageFile(this, 'app.js')">app.js</span>
+          </div>
+        </div>
+        <div class="stage-box" id="sa-box">
+          <h5>Staging Area</h5>
+          <div id="staged-files" style="min-height: 30px;"></div>
+          <div style="margin-top: 6px;">
+            <button onclick="commitFiles()" style="background: rgba(88,166,255,0.15); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 700;">git commit</button>
+          </div>
+        </div>
+        <div class="stage-box" id="repo-box">
+          <h5>Repository</h5>
+          <div id="committed-files" style="min-height: 30px;"></div>
+        </div>
+      </div>
+      <div class="tip"><strong>💡 Tip:</strong> Click files in Working Dir to stage them. Then click "git commit" to save them permanently.</div>
+    </div>
+
+    <!-- Core Concepts Accordions -->
+    <div class="section-title" style="margin-top: 8px;">Core Concepts</div>
+
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>📦 Repository (Repo)</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <p style="font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 10px;">A repository is your <strong>project folder that Git tracks</strong>. It contains your files plus a hidden <code>.git</code> folder that stores all history.</p>
+        <div class="code-block">
+          <span class="comment"># Create a new repo in current folder</span><br>
+          <span class="cmd">git init</span><br><br>
+          <span class="comment"># Clone an existing repo from GitHub</span><br>
+          <span class="cmd">git clone</span> <span class="arg">https://github.com/user/repo.git</span>
+        </div>
+        <svg viewBox="0 0 300 80" class="workflow-svg">
+          <rect x="10" y="20" width="80" height="40" rx="8" fill="#1c2430" stroke="#30363d"/>
+          <text x="50" y="45" text-anchor="middle" fill="#8b949e" font-size="12" font-family="Segoe UI">📁 folder</text>
+          <text x="115" y="45" text-anchor="middle" fill="#58a6ff" font-size="20">→</text>
+          <rect x="140" y="20" width="100" height="40" rx="8" fill="rgba(88,166,255,0.1)" stroke="#58a6ff"/>
+          <text x="190" y="38" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="Segoe UI" font-weight="bold">git init</text>
+          <text x="190" y="52" text-anchor="middle" fill="#8b949e" font-size="10" font-family="Segoe UI">+ .git folder</text>
+          <text x="255" y="45" text-anchor="middle" fill="#58a6ff" font-size="20">→</text>
+          <rect x="265" y="25" width="25" height="25" rx="4" fill="rgba(63,185,80,0.2)" stroke="#3fb950"/>
+          <text x="277" y="42" text-anchor="middle" fill="#3fb950" font-size="14">✓</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>💾 Commit</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <p style="font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 10px;">A commit is a <strong>snapshot of your project</strong> at a specific moment. Each commit has a unique ID (SHA), an author, date, and message.</p>
+        <div class="code-block">
+          <span class="cmd">git add</span> <span class="arg">.</span>  <span class="comment">    # Stage all changes</span><br>
+          <span class="cmd">git commit</span> <span class="arg">-m "Add login feature"</span><br><br>
+          <span class="output">[main a3f2c1] Add login feature</span><br>
+          <span class="output"> 2 files changed, 45 insertions(+)</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text2);">Think of commits like <strong>save points in a video game</strong> — you can always reload from any save point.</p>
+      </div>
+    </div>
+
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>🎯 HEAD</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <p style="font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 10px;"><strong>HEAD</strong> is a pointer to the commit you're currently at. It's like a cursor — it moves as you create commits or switch branches.</p>
+        <svg viewBox="0 0 300 60" class="workflow-svg">
+          <circle cx="40" cy="30" r="16" fill="rgba(88,166,255,0.15)" stroke="#58a6ff" stroke-width="2"/>
+          <text x="40" y="26" text-anchor="middle" fill="#8b949e" font-size="9">c1</text>
+          <line x1="56" y1="30" x2="94" y2="30" stroke="#30363d" stroke-width="2"/>
+          <circle cx="110" cy="30" r="16" fill="rgba(88,166,255,0.15)" stroke="#58a6ff" stroke-width="2"/>
+          <text x="110" y="26" text-anchor="middle" fill="#8b949e" font-size="9">c2</text>
+          <line x1="126" y1="30" x2="164" y2="30" stroke="#30363d" stroke-width="2"/>
+          <circle cx="180" cy="30" r="16" fill="rgba(88,166,255,0.2)" stroke="#58a6ff" stroke-width="2"/>
+          <text x="180" y="26" text-anchor="middle" fill="#8b949e" font-size="9">c3</text>
+          <path d="M 180 6 L 180 14" stroke="#f78166" stroke-width="2" marker-end="url(#arrow-r)"/>
+          <text x="180" y="8" text-anchor="middle" fill="#f78166" font-size="10" font-weight="bold">HEAD</text>
+          <defs>
+            <marker id="arrow-r" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#f78166"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>🔄 Push & Pull</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <p style="font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 10px;"><strong>Push</strong> uploads your commits to GitHub. <strong>Pull</strong> downloads teammates' commits to your machine.</p>
+        <svg viewBox="0 0 300 100" class="workflow-svg">
+          <rect x="10" y="30" width="90" height="40" rx="8" fill="#1c2430" stroke="#30363d"/>
+          <text x="55" y="54" text-anchor="middle" fill="#e6edf3" font-size="12">💻 Local</text>
+          <rect x="200" y="30" width="90" height="40" rx="8" fill="rgba(88,166,255,0.1)" stroke="#58a6ff"/>
+          <text x="245" y="54" text-anchor="middle" fill="#e6edf3" font-size="12">☁️ GitHub</text>
+          <!-- Push arrow -->
+          <path d="M 105 40 Q 152 20 195 40" stroke="#3fb950" stroke-width="2" fill="none" stroke-dasharray="4,3">
+            <animate attributeName="stroke-dashoffset" from="50" to="0" dur="2s" repeatCount="indefinite"/>
+          </path>
+          <text x="150" y="25" text-anchor="middle" fill="#3fb950" font-size="11">git push ↑</text>
+          <!-- Pull arrow -->
+          <path d="M 195 60 Q 152 80 105 60" stroke="#f78166" stroke-width="2" fill="none" stroke-dasharray="4,3">
+            <animate attributeName="stroke-dashoffset" from="0" to="50" dur="2s" repeatCount="indefinite"/>
+          </path>
+          <text x="150" y="90" text-anchor="middle" fill="#f78166" font-size="11">git pull ↓</text>
+        </svg>
+        <div class="code-block">
+          <span class="cmd">git push</span> <span class="arg">origin main</span>  <span class="comment">  # Upload to GitHub</span><br>
+          <span class="cmd">git pull</span> <span class="arg">origin main</span>  <span class="comment">  # Download from GitHub</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>📋 Common Commands</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <div class="code-block" style="line-height: 2;">
+          <span class="comment"># Setup</span><br>
+          <span class="cmd">git config</span> <span class="arg">--global user.name "You"</span><br>
+          <span class="cmd">git config</span> <span class="arg">--global user.email "you@email.com"</span><br><br>
+          <span class="comment"># Daily workflow</span><br>
+          <span class="cmd">git status</span>              <span class="comment">  # What changed?</span><br>
+          <span class="cmd">git log</span> <span class="arg">--oneline</span>      <span class="comment">  # Commit history</span><br>
+          <span class="cmd">git diff</span>               <span class="comment">  # See exact changes</span><br>
+          <span class="cmd">git stash</span>              <span class="comment">  # Save temp changes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Commit Tree Visual -->
+    <div class="concept-visual reveal" style="margin-top: 16px;">
+      <h3>📈 Commit History</h3>
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">Each commit points back to its parent — forming a chain of history.</p>
+      <svg id="commit-tree-svg" viewBox="0 0 340 80">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#30363d"/>
+          </marker>
+        </defs>
+        <!-- Commit line -->
+        <line x1="40" y1="40" x2="300" y2="40" stroke="#30363d" stroke-width="2"/>
+        <!-- Commits -->
+        <g class="commit-dot" onmouseenter="showCommitTooltip(event,'Initial commit','a1b2c3')" onmouseleave="hideCommitTooltip()" onclick="showCommit(this,'Initial commit','a1b2c3')">
+          <circle cx="40" cy="40" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2.5"/>
+          <circle cx="40" cy="40" r="10" fill="none" stroke="#58a6ff" stroke-width="0" opacity="0" class="pulse-ring"><animate attributeName="r" from="10" to="22" dur="1.2s" begin="indefinite" id="pr1"/><animate attributeName="stroke-opacity" from="0.7" to="0" dur="1.2s" begin="pr1.begin"/><animate attributeName="stroke-width" from="3" to="1" dur="1.2s" begin="pr1.begin"/></circle>
+          <text x="40" y="62" text-anchor="middle" fill="#8b949e" font-size="10">c1</text>
+          <text x="40" y="72" text-anchor="middle" fill="#8b949e" font-size="9">Initial</text>
+        </g>
+        <g class="commit-dot" onmouseenter="showCommitTooltip(event,'Add homepage','b3c4d5')" onmouseleave="hideCommitTooltip()" onclick="showCommit(this,'Add homepage','b3c4d5')">
+          <circle cx="110" cy="40" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2.5"/>
+          <circle cx="110" cy="40" r="10" fill="none" stroke="#58a6ff" stroke-width="0" opacity="0" class="pulse-ring"><animate attributeName="r" from="10" to="22" dur="1.2s" begin="indefinite" id="pr2"/><animate attributeName="stroke-opacity" from="0.7" to="0" dur="1.2s" begin="pr2.begin"/><animate attributeName="stroke-width" from="3" to="1" dur="1.2s" begin="pr2.begin"/></circle>
+          <text x="110" y="62" text-anchor="middle" fill="#8b949e" font-size="10">c2</text>
+          <text x="110" y="72" text-anchor="middle" fill="#8b949e" font-size="9">Homepage</text>
+        </g>
+        <g class="commit-dot" onmouseenter="showCommitTooltip(event,'Add styling','c5d6e7')" onmouseleave="hideCommitTooltip()" onclick="showCommit(this,'Add styling','c5d6e7')">
+          <circle cx="180" cy="40" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2.5"/>
+          <circle cx="180" cy="40" r="10" fill="none" stroke="#58a6ff" stroke-width="0" opacity="0" class="pulse-ring"><animate attributeName="r" from="10" to="22" dur="1.2s" begin="indefinite" id="pr3"/><animate attributeName="stroke-opacity" from="0.7" to="0" dur="1.2s" begin="pr3.begin"/><animate attributeName="stroke-width" from="3" to="1" dur="1.2s" begin="pr3.begin"/></circle>
+          <text x="180" y="62" text-anchor="middle" fill="#8b949e" font-size="10">c3</text>
+          <text x="180" y="72" text-anchor="middle" fill="#8b949e" font-size="9">Styling</text>
+        </g>
+        <g class="commit-dot" onmouseenter="showCommitTooltip(event,'Fix bug #12','d7e8f9')" onmouseleave="hideCommitTooltip()" onclick="showCommit(this,'Fix bug #12','d7e8f9')">
+          <circle cx="250" cy="40" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2.5"/>
+          <circle cx="250" cy="40" r="10" fill="none" stroke="#58a6ff" stroke-width="0" opacity="0" class="pulse-ring"><animate attributeName="r" from="10" to="22" dur="1.2s" begin="indefinite" id="pr4"/><animate attributeName="stroke-opacity" from="0.7" to="0" dur="1.2s" begin="pr4.begin"/><animate attributeName="stroke-width" from="3" to="1" dur="1.2s" begin="pr4.begin"/></circle>
+          <text x="250" y="62" text-anchor="middle" fill="#8b949e" font-size="10">c4</text>
+          <text x="250" y="72" text-anchor="middle" fill="#8b949e" font-size="9">Bug fix</text>
+        </g>
+        <!-- HEAD -->
+        <g class="commit-dot">
+          <circle cx="300" cy="40" r="12" fill="rgba(247,129,102,0.2)" stroke="#f78166" stroke-width="2.5"/>
+          <text x="300" y="44" text-anchor="middle" fill="#f78166" font-size="9" font-weight="bold">HEAD</text>
+          <text x="300" y="62" text-anchor="middle" fill="#8b949e" font-size="10">main</text>
+        </g>
+      </svg>
+      <div id="commit-info" class="info" style="display:none; margin-top: 10px;"></div>
+      <!-- floating tooltip for SVG hover -->
+      <div id="commit-tooltip" class="svg-tooltip"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BRANCHING -->
+<div id="page-branch" class="page">
+  <div class="container">
+    <div style="padding: 8px 0 16px;">
+      <div class="section-title">Branching</div>
+      <h2 style="font-size: 22px; font-weight: 800;">Work in Parallel</h2>
+    </div>
+
+    <div class="card reveal">
+      <h3>🌿 What is a Branch?</h3>
+      <p>A branch is a <strong>parallel version</strong> of your code. You can create a new branch to work on a feature without affecting the main codebase. It's like a parallel universe for your code.</p>
+    </div>
+
+    <!-- Branch Visual -->
+    <div class="concept-visual reveal">
+      <h3>🎬 Live Branch Diagram</h3>
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">Click steps to animate the branching process.</p>
+      <svg id="branch-svg" viewBox="0 0 360 160">
+        <defs>
+          <marker id="barr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#58a6ff"/>
+          </marker>
+          <marker id="garr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#3fb950"/>
+          </marker>
+          <marker id="parr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#d2a8ff"/>
+          </marker>
+        </defs>
+        <!-- Main branch -->
+        <line x1="30" y1="80" x2="330" y2="80" stroke="#30363d" stroke-width="2"/>
+        <text x="10" y="78" fill="#58a6ff" font-size="10" font-weight="bold">main</text>
+        <!-- Main commits -->
+        <circle cx="60" cy="80" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+        <text x="60" y="96" text-anchor="middle" fill="#8b949e" font-size="9">c1</text>
+        <circle cx="120" cy="80" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+        <text x="120" y="96" text-anchor="middle" fill="#8b949e" font-size="9">c2</text>
+        <!-- Branch point -->
+        <circle cx="180" cy="80" r="10" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+        <text x="180" y="96" text-anchor="middle" fill="#8b949e" font-size="9">c3</text>
+        <!-- Feature branch line -->
+        <line x1="180" y1="70" x2="240" y2="35" stroke="#3fb950" stroke-width="2" id="feat-line1" opacity="0"/>
+        <line x1="240" y1="35" x2="300" y2="35" stroke="#3fb950" stroke-width="2" id="feat-line2" opacity="0"/>
+        <text x="240" y="20" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="bold" id="feat-label" opacity="0">feature/login</text>
+        <!-- Feature commits -->
+        <circle cx="240" cy="35" r="10" fill="#1c2430" stroke="#3fb950" stroke-width="2" id="fc1" opacity="0"/>
+        <text x="240" y="51" text-anchor="middle" fill="#3fb950" font-size="9" id="fc1-label" opacity="0">f1</text>
+        <circle cx="300" cy="35" r="10" fill="#1c2430" stroke="#3fb950" stroke-width="2" id="fc2" opacity="0"/>
+        <text x="300" y="51" text-anchor="middle" fill="#3fb950" font-size="9" id="fc2-label" opacity="0">f2</text>
+        <!-- Hotfix branch -->
+        <line x1="180" y1="90" x2="240" y2="125" stroke="#d2a8ff" stroke-width="2" id="hot-line1" opacity="0"/>
+        <circle cx="240" cy="125" r="10" fill="#1c2430" stroke="#d2a8ff" stroke-width="2" id="hc1" opacity="0"/>
+        <text x="240" y="141" text-anchor="middle" fill="#d2a8ff" font-size="9" id="hc1-label" opacity="0">h1</text>
+        <text x="240" y="155" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold" id="hot-label" opacity="0">hotfix</text>
+        <!-- Merge back arrow -->
+        <path d="M 305 35 Q 330 58 305 80" stroke="#f78166" stroke-width="2" fill="none" stroke-dasharray="4,3" id="merge-arrow" opacity="0" marker-end="url(#marr)"/>
+        <text x="345" y="60" fill="#f78166" font-size="10" id="merge-label" opacity="0">merge</text>
+        <circle cx="305" cy="80" r="10" fill="rgba(247,129,102,0.2)" stroke="#f78166" stroke-width="2" id="merge-commit" opacity="0"/>
+        <defs>
+          <marker id="marr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#f78166"/>
+          </marker>
+        </defs>
+      </svg>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;" id="branch-steps">
+        <button onclick="branchStep(1)" class="cmd-btn branch-step-btn" data-step="1">1. git branch</button>
+        <button onclick="branchStep(2)" class="cmd-btn branch-step-btn" data-step="2">2. Add commits</button>
+        <button onclick="branchStep(3)" class="cmd-btn branch-step-btn" data-step="3">3. Hotfix branch</button>
+        <button onclick="branchStep(4)" class="cmd-btn branch-step-btn" data-step="4">4. git merge</button>
+        <button onclick="branchStep(0)" class="cmd-btn branch-step-btn" data-step="0" style="color: var(--accent3);">Reset</button>
+      </div>
+      <div id="branch-explain" class="explanation-panel">Click a step above to see what happens!</div>
+    </div>
+
+    <!-- Branch Commands -->
+    <div class="section-title" style="margin-top: 8px;">Branch Commands</div>
+    <div class="code-block reveal" style="line-height: 2;">
+      <span class="comment"># Create and switch to new branch</span><br>
+      <span class="cmd">git checkout</span> <span class="arg">-b feature/login</span><br><br>
+      <span class="comment"># Or with newer syntax</span><br>
+      <span class="cmd">git switch</span> <span class="arg">-c feature/login</span><br><br>
+      <span class="comment"># List all branches</span><br>
+      <span class="cmd">git branch</span><br><br>
+      <span class="comment"># Merge feature into main</span><br>
+      <span class="cmd">git checkout</span> <span class="arg">main</span><br>
+      <span class="cmd">git merge</span> <span class="arg">feature/login</span><br><br>
+      <span class="comment"># Delete merged branch</span><br>
+      <span class="cmd">git branch</span> <span class="arg">-d feature/login</span>
+    </div>
+
+    <!-- Merge Conflicts -->
+    <div class="accordion reveal">
+      <div class="accordion-header" onclick="toggleAccordion(this)">
+        <span>⚠️ Merge Conflicts</span><span class="acc-icon">▼</span>
+      </div>
+      <div class="accordion-body">
+        <p style="font-size: 14px; color: var(--text2); margin-bottom: 10px; line-height: 1.6;">A merge conflict happens when <strong>two branches changed the same line differently</strong>. Git marks the conflict in the file:</p>
+        <div class="code-block" style="line-height: 2;">
+          <span style="color: var(--accent);">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</span><br>
+          <span style="color: var(--accent2);">const greeting = "Hello";</span><br>
+          <span style="color: var(--border);">=======</span><br>
+          <span style="color: var(--accent3);">const greeting = "Hi there";</span><br>
+          <span style="color: var(--accent);">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text2);">You must manually pick which version to keep, then <code>git add</code> and <code>git commit</code> to resolve it.</p>
+      </div>
+    </div>
+
+    <!-- Git Flow -->
+    <div class="card reveal" style="margin-top: 8px;">
+      <h3>🔄 Git Flow Strategy</h3>
+      <p style="margin-bottom: 10px;">A popular branching strategy used in teams:</p>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span class="badge badge-blue">main</span>
+          <span style="color: var(--text2);">Production-ready code only</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span class="badge badge-green">develop</span>
+          <span style="color: var(--text2);">Integration branch for features</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span class="badge badge-purple">feature/*</span>
+          <span style="color: var(--text2);">New features, one branch per task</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span class="badge badge-red">hotfix/*</span>
+          <span style="color: var(--text2);">Emergency fixes for production</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span class="badge badge-orange">release/*</span>
+          <span style="color: var(--text2);">Preparing a new version release</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GITHUB -->
+<div id="page-github" class="page">
+  <div class="container">
+    <div style="padding: 8px 0 16px;">
+      <div class="section-title">GitHub</div>
+      <h2 style="font-size: 22px; font-weight: 800;">Git in the Cloud</h2>
+    </div>
+
+    <div class="card reveal">
+      <h3>🐙 What is GitHub?</h3>
+      <p>GitHub is a <strong>cloud platform</strong> that hosts your Git repositories online. It adds collaboration features on top of Git: Pull Requests, Issues, Actions, Code Review, and more. It's where the world's code lives.</p>
+    </div>
+
+    <!-- Git vs GitHub -->
+    <div class="section-title">Git vs GitHub</div>
+    <div class="compare-grid reveal">
+      <div class="compare-col git" style="border: 1px solid rgba(88,166,255,0.3);">
+        <h4 style="color: var(--accent);">⚡ Git</h4>
+        <ul>
+          <li>Works offline</li>
+          <li>Local tool</li>
+          <li>Tracks history</li>
+          <li>Free & open source</li>
+          <li>Command line</li>
+          <li>No account needed</li>
+        </ul>
+      </div>
+      <div class="compare-col github" style="border: 1px solid rgba(63,185,80,0.3);">
+        <h4 style="color: var(--accent2);">☁️ GitHub</h4>
+        <ul>
+          <li>Needs internet</li>
+          <li>Cloud platform</li>
+          <li>Hosts repos</li>
+          <li>Free tier + paid</li>
+          <li>Web UI + more</li>
+          <li>Account required</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Remote Concept -->
+    <div class="concept-visual reveal">
+      <h3>🔗 Remote Repository</h3>
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">A remote is a version of your repo hosted on the internet. "origin" is the default name for your GitHub remote.</p>
+      <svg viewBox="0 0 340 120" class="workflow-svg">
+        <!-- Developer 1 -->
+        <rect x="5" y="40" width="75" height="50" rx="8" fill="#1c2430" stroke="#30363d"/>
+        <text x="42" y="60" text-anchor="middle" fill="#e6edf3" font-size="11">💻 Alice</text>
+        <text x="42" y="75" text-anchor="middle" fill="#8b949e" font-size="10">Local repo</text>
+        <!-- GitHub -->
+        <rect x="130" y="20" width="80" height="70" rx="10" fill="rgba(88,166,255,0.08)" stroke="#58a6ff" stroke-width="2"/>
+        <text x="170" y="50" text-anchor="middle" fill="#58a6ff" font-size="22">🐙</text>
+        <text x="170" y="68" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="bold">GitHub</text>
+        <text x="170" y="80" text-anchor="middle" fill="#8b949e" font-size="10">origin</text>
+        <!-- Developer 2 -->
+        <rect x="260" y="40" width="75" height="50" rx="8" fill="#1c2430" stroke="#30363d"/>
+        <text x="298" y="60" text-anchor="middle" fill="#e6edf3" font-size="11">💻 Bob</text>
+        <text x="298" y="75" text-anchor="middle" fill="#8b949e" font-size="10">Local repo</text>
+        <!-- Arrows -->
+        <path d="M 80 55 Q 105 45 130 55" stroke="#3fb950" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+        <path d="M 130 65 Q 105 75 80 65" stroke="#f78166" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+        <text x="105" y="43" text-anchor="middle" fill="#3fb950" font-size="9">push</text>
+        <text x="105" y="82" text-anchor="middle" fill="#f78166" font-size="9">pull</text>
+        <path d="M 210 55 Q 235 45 260 55" stroke="#3fb950" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+        <path d="M 260 65 Q 235 75 210 65" stroke="#f78166" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+        <text x="235" y="43" text-anchor="middle" fill="#3fb950" font-size="9">push</text>
+        <text x="235" y="82" text-anchor="middle" fill="#f78166" font-size="9">pull</text>
+      </svg>
+    </div>
+
+    <!-- Fork vs Clone -->
+    <div class="section-title">Fork vs Clone</div>
+    <div class="card reveal">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="background: var(--surface2); border-radius: 8px; padding: 14px; border-left: 3px solid var(--accent);">
+          <div style="font-weight: 700; margin-bottom: 6px;">📋 Clone</div>
+          <div style="font-size: 13px; color: var(--text2); line-height: 1.6;">Downloads a copy of a repo <strong>to your computer</strong>. You still push to the original repo if you have access. Used when you have permission to contribute.</div>
+          <div class="code-block" style="margin-top: 8px; margin-bottom: 0;">
+            <span class="cmd">git clone</span> <span class="arg">https://github.com/org/repo.git</span>
+          </div>
+        </div>
+        <div style="background: var(--surface2); border-radius: 8px; padding: 14px; border-left: 3px solid var(--accent2);">
+          <div style="font-weight: 700; margin-bottom: 6px;">🍴 Fork</div>
+          <div style="font-size: 13px; color: var(--text2); line-height: 1.6;">Creates a <strong>copy on GitHub under your account</strong>. You push to your fork, then submit a Pull Request to the original. Used for open source contributions.</div>
+          <svg viewBox="0 0 300 70" class="workflow-svg" style="margin-top: 8px;">
+            <rect x="10" y="15" width="80" height="35" rx="6" fill="rgba(88,166,255,0.1)" stroke="#58a6ff"/>
+            <text x="50" y="37" text-anchor="middle" fill="#e6edf3" font-size="11">🐙 org/repo</text>
+            <path d="M 90 33 L 130 33" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#garr2)"/>
+            <text x="110" y="25" text-anchor="middle" fill="#3fb950" font-size="10">fork</text>
+            <rect x="130" y="15" width="80" height="35" rx="6" fill="rgba(63,185,80,0.1)" stroke="#3fb950"/>
+            <text x="170" y="37" text-anchor="middle" fill="#e6edf3" font-size="11">🐙 you/repo</text>
+            <path d="M 210 33 L 250 33" stroke="#d2a8ff" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#parr2)"/>
+            <text x="230" y="25" text-anchor="middle" fill="#d2a8ff" font-size="10">PR</text>
+            <rect x="250" y="15" width="40" height="35" rx="6" fill="rgba(210,168,255,0.1)" stroke="#d2a8ff"/>
+            <text x="270" y="37" text-anchor="middle" fill="#d2a8ff" font-size="11">✓</text>
+            <defs>
+              <marker id="garr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#3fb950"/>
+              </marker>
+              <marker id="parr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#d2a8ff"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pull Request -->
+    <div class="section-title">Pull Request Flow</div>
+    <div class="concept-visual reveal">
+      <h3>🔀 What is a Pull Request?</h3>
+      <p style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">A PR is a formal request to merge your changes into the main codebase. It allows team review before code is merged.</p>
+      <div class="pr-flow">
+        <div class="pr-step"><div class="step-num">1</div><div><strong>Fork or branch</strong> the repo, make your changes locally</div></div>
+        <div class="pr-step"><div class="step-num">2</div><div><strong>Push</strong> your branch to GitHub: <code>git push origin feature/x</code></div></div>
+        <div class="pr-step"><div class="step-num">3</div><div>On GitHub, click <strong>"New Pull Request"</strong> and describe your changes</div></div>
+        <div class="pr-step"><div class="step-num">4</div><div><strong>Team reviews</strong> the code, leaves comments, requests changes</div></div>
+        <div class="pr-step"><div class="step-num">5</div><div>After approval, maintainer clicks <strong>"Merge Pull Request"</strong> ✅</div></div>
+      </div>
+    </div>
+
+    <!-- GitHub Features -->
+    <div class="section-title">Key GitHub Features</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+      <div class="card reveal" style="padding: 14px; margin: 0;">
+        <div style="font-size: 24px; margin-bottom: 6px;">📋</div>
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Issues</h4>
+        <p style="font-size: 12px; color: var(--text2);">Track bugs, features, and tasks</p>
+      </div>
+      <div class="card reveal" style="padding: 14px; margin: 0;">
+        <div style="font-size: 24px; margin-bottom: 6px;">⚙️</div>
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Actions</h4>
+        <p style="font-size: 12px; color: var(--text2);">Automate tests & deployments</p>
+      </div>
+      <div class="card reveal" style="padding: 14px; margin: 0;">
+        <div style="font-size: 24px; margin-bottom: 6px;">🌐</div>
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Pages</h4>
+        <p style="font-size: 12px; color: var(--text2);">Host websites for free</p>
+      </div>
+      <div class="card reveal" style="padding: 14px; margin: 0;">
+        <div style="font-size: 24px; margin-bottom: 6px;">👥</div>
+        <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 4px;">Teams</h4>
+        <p style="font-size: 12px; color: var(--text2);">Manage permissions & access</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYGROUND -->
+<div id="page-playground" class="page">
+  <div class="container">
+    <div style="padding: 8px 0 16px;">
+      <div class="section-title">Playground</div>
+      <h2 style="font-size: 22px; font-weight: 800;">Try Git Commands</h2>
+    </div>
+
+    <div class="playground-terminal" id="terminal">
+      <div class="terminal-line out-line">Git Visual Pro Playground — simulated environment</div>
+      <div class="terminal-line out-line">Try the commands below to learn interactively!</div>
+      <div class="terminal-line out-line">─────────────────────────────────────────</div>
+    </div>
+
+    <div class="cmd-buttons">
+      <div class="cmd-btn" onclick="runCmd('git init')">git init</div>
+      <div class="cmd-btn" onclick="runCmd('git add')">git add .</div>
+      <div class="cmd-btn" onclick="runCmd('git commit')">git commit</div>
+      <div class="cmd-btn" onclick="runCmd('git branch')">git branch</div>
+      <div class="cmd-btn" onclick="runCmd('git checkout')">git checkout</div>
+      <div class="cmd-btn" onclick="runCmd('git merge')">git merge</div>
+      <div class="cmd-btn" onclick="runCmd('git push')">git push</div>
+      <div class="cmd-btn" onclick="runCmd('git pull')">git pull</div>
+    </div>
+
+    <div class="playground-vis">
+      <h4>Visual Repository State</h4>
+      <svg id="pg-tree-svg" viewBox="0 0 340 120">
+        <!-- Will be updated dynamically -->
+        <text x="170" y="60" text-anchor="middle" fill="#8b949e" font-size="13">Run "git init" to start!</text>
+      </svg>
+      <div class="explanation-panel" id="pg-explain">
+        Click any command above to see it explained with a visual diagram and live terminal output.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="page-quiz" class="page">
+  <div class="quiz-header">
+    <h2>🧠 Git Quiz</h2>
+    <p>Test your knowledge of Git & GitHub</p>
+  </div>
+
+  <div class="score-bar">
+    <div class="score-pill" id="score-display">Score: 0/0</div>
+    <div style="flex: 1; background: var(--surface); border-radius: 20px; height: 6px;">
+      <div id="quiz-progress-bar" style="height: 6px; border-radius: 20px; background: var(--accent); width: 0%; transition: width 0.3s;"></div>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="question-box" id="question-box"></div>
+    <div class="answer-options" id="answer-options"></div>
+  </div>
+
+  <div class="quiz-nav">
+    <button class="btn btn-secondary" onclick="prevQuestion()" id="btn-prev" style="display:none">← Prev</button>
+    <button class="btn btn-primary" onclick="nextQuestion()" id="btn-next" style="display:none">Next →</button>
+    <button class="btn btn-primary" onclick="submitQuiz()" id="btn-submit" style="display:none">Submit Quiz</button>
+    <button class="btn btn-secondary" onclick="restartQuiz()" id="btn-restart" style="display:none">Try Again</button>
+  </div>
+
+  <div id="quiz-result" style="display:none;"></div>
+  <div id="confetti-container" class="confetti-container"></div>
+</div>
+
+<!-- ===== SOUND TOGGLE ===== -->
+<button class="sound-toggle muted" id="sound-toggle" onclick="toggleSound()" aria-label="Toggle sounds">
+  <span id="sound-icon">🔇</span>
+  <span class="sound-tooltip" id="sound-label">Sounds off</span>
+</button>
+
+<!-- ===== HINT CONTAINER ===== -->
+<div id="hint-container"></div>
+
+<!-- ===== BOTTOM NAVIGATION ===== -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="navigate('home')" id="nav-home">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Home</div>
+  </button>
+  <button class="nav-item" onclick="navigate('git')" id="nav-git">
+    <div class="nav-icon">📦</div>
+    <div class="nav-label">Basics</div>
+  </button>
+  <button class="nav-item" onclick="navigate('branch')" id="nav-branch">
+    <div class="nav-icon">🌿</div>
+    <div class="nav-label">Branch</div>
+  </button>
+  <button class="nav-item" onclick="navigate('github')" id="nav-github">
+    <div class="nav-icon">🐙</div>
+    <div class="nav-label">GitHub</div>
+  </button>
+  <button class="nav-item" onclick="navigate('playground')" id="nav-playground">
+    <div class="nav-icon">🎮</div>
+    <div class="nav-label">Play</div>
+  </button>
+  <button class="nav-item" onclick="navigate('quiz')" id="nav-quiz">
+    <div class="nav-icon">🧠</div>
+    <div class="nav-label">Quiz</div>
+  </button>
+</nav>
+
+<script>
+// ===== NAVIGATION =====
+const pages = ['home','git','branch','github','playground','quiz'];
+let visitedPages = new Set(['home']);
+
+let currentPage = 'home';
+
+function navigate(page) {
+  if (page === currentPage) return;
+  const fromIdx = pages.indexOf(currentPage);
+  const toIdx   = pages.indexOf(page);
+  const goRight = toIdx > fromIdx;
+
+  const fromEl = document.getElementById('page-' + currentPage);
+  const toEl   = document.getElementById('page-' + page);
+
+  const animClasses = ['slide-in-right','slide-in-left','slide-out-right','slide-out-left'];
+  [fromEl, toEl].forEach(el => el.classList.remove(...animClasses));
+
+  toEl.classList.add('active');
+  toEl.classList.add(goRight ? 'slide-in-right' : 'slide-in-left');
+
+  fromEl.classList.add(goRight ? 'slide-out-left' : 'slide-out-right');
+  setTimeout(() => {
+    fromEl.classList.remove('active', 'slide-out-left', 'slide-out-right');
+    toEl.classList.remove('slide-in-right', 'slide-in-left');
+  }, 280);
+
+  pages.forEach(p => document.getElementById('nav-' + p).classList.remove('active'));
+  const navEl = document.getElementById('nav-' + page);
+  navEl.classList.add('active');
+  navEl.classList.remove('rippling');
+  void navEl.offsetWidth;
+  navEl.classList.add('rippling');
+  setTimeout(() => navEl.classList.remove('rippling'), 450);
+
+  currentPage = page;
+  window.scrollTo(0, 0);
+  visitedPages.add(page);
+  updateProgress();
+  if (page === 'quiz') initQuiz();
+  setTimeout(() => revealOnScroll(), 100);
+
+  // extras: sound, copy buttons, hints
+  playSound('nav');
+  setTimeout(initCopyButtons, 350);
+  showHint(page);
+}
+
+function updateProgress() {
+  const count = visitedPages.size;
+  const pct = Math.round((count / pages.length) * 100);
+  const bar = document.getElementById('overall-progress');
+  bar.style.width = pct + '%';
+  // trigger glow pulse
+  bar.classList.remove('updated');
+  void bar.offsetWidth;
+  bar.classList.add('updated');
+  setTimeout(() => bar.classList.remove('updated'), 800);
+  document.getElementById('progress-label').textContent = count + ' of ' + pages.length + ' sections explored';
+}
+
+// ===== SCROLL REVEAL =====
+function revealOnScroll() {
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el => {
+    const rect = el.getBoundingClientRect();
+    if(rect.top < window.innerHeight - 40) el.classList.add('visible');
+  });
+}
+window.addEventListener('scroll', revealOnScroll);
+setTimeout(revealOnScroll, 200);
+
+// ===== ACCORDION =====
+function toggleAccordion(header) {
+  const body = header.nextElementSibling;
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ===== STAGING DEMO =====
+function stageFile(chip, name) {
+  if(chip.classList.contains('staged') || chip.classList.contains('committed')) return;
+  chip.classList.add('staged');
+  const staged = document.getElementById('staged-files');
+  const newChip = document.createElement('span');
+  newChip.className = 'file-chip staged snap-in';
+  newChip.textContent = name;
+  staged.appendChild(newChip);
+  // remove snap-in after animation so it doesn't re-trigger
+  setTimeout(() => newChip.classList.remove('snap-in'), 400);
+  chip.remove();
+  document.getElementById('sa-box').classList.add('highlight');
+}
+
+function commitFiles() {
+  const staged = document.getElementById('staged-files');
+  const committed = document.getElementById('committed-files');
+  const chips = staged.querySelectorAll('.file-chip');
+  if(chips.length === 0) return;
+  chips.forEach(chip => {
+    const newChip = document.createElement('span');
+    newChip.className = 'file-chip committed snap-in';
+    newChip.textContent = chip.textContent;
+    committed.appendChild(newChip);
+    setTimeout(() => newChip.classList.remove('snap-in'), 400);
+    chip.remove();
+  });
+  document.getElementById('sa-box').classList.remove('highlight');
+  document.getElementById('repo-box').classList.add('highlight');
+  setTimeout(() => document.getElementById('repo-box').classList.remove('highlight'), 1500);
+}
+
+// ===== COMMIT TREE =====
+function showCommit(g, msg, sha) {
+  const info = document.getElementById('commit-info');
+  info.style.display = 'block';
+  info.innerHTML = `<strong>${sha}</strong> — ${msg} <span class="badge badge-green" style="margin-left: 8px;">committed</span>`;
+  // trigger pulse ring on this dot
+  const ring = g.querySelector('.pulse-ring');
+  if(ring) {
+    const anim = ring.querySelector('animate');
+    if(anim) anim.beginElement();
+  }
+}
+
+let tooltipTimeout;
+function showCommitTooltip(evt, msg, sha) {
+  clearTimeout(tooltipTimeout);
+  const tip = document.getElementById('commit-tooltip');
+  tip.textContent = sha.slice(0,7) + ' · ' + msg;
+  // position relative to svg container
+  const svgEl = document.getElementById('commit-tree-svg');
+  const rect = svgEl.getBoundingClientRect();
+  const x = evt.clientX - rect.left;
+  const y = evt.clientY - rect.top;
+  tip.style.left = x + 'px';
+  tip.style.top = (y - 8) + 'px';
+  tip.style.position = 'absolute';
+  // make parent relative
+  svgEl.parentElement.style.position = 'relative';
+  tip.classList.add('visible');
+}
+function hideCommitTooltip() {
+  tooltipTimeout = setTimeout(() => {
+    const tip = document.getElementById('commit-tooltip');
+    tip.classList.remove('visible');
+  }, 120);
+}
+
+// ===== BRANCHING ANIMATION =====
+const branchExplanations = [
+  "Click a step to see the animation!",
+  "🌿 <strong>git branch feature/login</strong> — Creates a new branch from the current commit (c3). Now you can develop independently without touching main!",
+  "💾 <strong>git checkout feature/login && git commit</strong> — Added two commits (f1, f2) on the feature branch. Main branch is untouched!",
+  "🚨 <strong>git checkout -b hotfix</strong> — Meanwhile, a bug was found! Create a quick hotfix branch from main to fix it urgently.",
+  "🔀 <strong>git checkout main && git merge feature/login</strong> — Feature complete! Merging back into main creates a merge commit. Both branches are combined."
+];
+
+function branchStep(step) {
+  const ids = ['feat-line1','feat-line2','feat-label','fc1','fc1-label','fc2','fc2-label','hot-line1','hc1','hc1-label','hot-label','merge-arrow','merge-label','merge-commit'];
+  const steps = {
+    0: [],
+    1: ['feat-line1','feat-label'],
+    2: ['feat-line1','feat-label','feat-line2','fc1','fc1-label','fc2','fc2-label'],
+    3: ['feat-line1','feat-label','feat-line2','fc1','fc1-label','fc2','fc2-label','hot-line1','hc1','hc1-label','hot-label'],
+    4: ['feat-line1','feat-label','feat-line2','fc1','fc1-label','fc2','fc2-label','hot-line1','hc1','hc1-label','hot-label','merge-arrow','merge-label','merge-commit']
+  };
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.setAttribute('opacity', '0');
+  });
+  (steps[step] || []).forEach(id => {
+    const el = document.getElementById(id);
+    if(el) {
+      el.setAttribute('opacity','1');
+      el.style.transition = 'opacity 0.4s ease';
+    }
+  });
+  document.getElementById('branch-explain').innerHTML = branchExplanations[step] || '';
+  // update active step button highlight
+  document.querySelectorAll('.branch-step-btn').forEach(btn => {
+    btn.classList.remove('step-active');
+    if(parseInt(btn.dataset.step) === step && step > 0) btn.classList.add('step-active');
+  });
+}
+
+// ===== PLAYGROUND =====
+let pgState = {
+  initialized: false,
+  files: [],
+  staged: [],
+  commits: [],
+  branches: ['main'],
+  currentBranch: 'main',
+  remoteExists: false
+};
+
+const cmdData = {
+  'git init': {
+    lines: [
+      {t:'cmd', v:'git init'},
+      {t:'out', v:'Initialized empty Git repository in /my-project/.git/'},
+      {t:'out', v:'✅ Repository created! Now Git watches this folder.'}
+    ],
+    action: () => {
+      pgState.initialized = true;
+      pgState.files = ['index.html','style.css','app.js'];
+      pgState.staged = [];
+      pgState.commits = [];
+    },
+    explain: '<strong>git init</strong> creates a new Git repository. It adds a hidden <code>.git</code> folder that stores all version history. Run this once per project.',
+    draw: drawInit
+  },
+  'git add': {
+    lines: [
+      {t:'cmd', v:'git add .'},
+      {t:'out', v:'Staged: index.html, style.css, app.js'},
+      {t:'out', v:'✅ Files moved to staging area — ready to commit.'}
+    ],
+    action: () => { pgState.staged = [...pgState.files]; },
+    explain: '<strong>git add .</strong> moves all changed files to the <strong>Staging Area</strong>. Think of it as "selecting" which changes to include in your next commit.',
+    draw: drawStage
+  },
+  'git commit': {
+    lines: [
+      {t:'cmd', v:'git commit -m "Add initial files"'},
+      {t:'out', v:'[main (root-commit) a1b2c3] Add initial files'},
+      {t:'out', v:' 3 files changed, 45 insertions(+)'},
+      {t:'out', v:'✅ Snapshot saved to history!'}
+    ],
+    action: () => {
+      if(pgState.staged.length > 0) {
+        pgState.commits.push({id: 'c'+(pgState.commits.length+1), msg:'Commit '+(pgState.commits.length+1), branch: pgState.currentBranch});
+        pgState.staged = [];
+      }
+    },
+    explain: '<strong>git commit</strong> saves the staged files as a permanent snapshot with a message. Each commit gets a unique SHA hash (like a fingerprint).',
+    draw: drawCommits
+  },
+  'git branch': {
+    lines: [
+      {t:'cmd', v:'git branch feature/new-ui'},
+      {t:'out', v:'✅ Branch "feature/new-ui" created from main'},
+      {t:'out', v:'  main'},
+      {t:'out', v:'* feature/new-ui  ← you are here'}
+    ],
+    action: () => {
+      if(!pgState.branches.includes('feature/new-ui')) pgState.branches.push('feature/new-ui');
+      pgState.currentBranch = 'feature/new-ui';
+    },
+    explain: '<strong>git branch</strong> creates a new branch — a parallel line of development. Changes on this branch won\'t affect <code>main</code> until you merge.',
+    draw: drawBranches
+  },
+  'git checkout': {
+    lines: [
+      {t:'cmd', v:'git checkout main'},
+      {t:'out', v:"Switched to branch 'main'"},
+      {t:'out', v:'✅ Now on main branch.'}
+    ],
+    action: () => { pgState.currentBranch = 'main'; },
+    explain: '<strong>git checkout</strong> switches to a different branch or commit. Your working directory updates to match that branch\'s state. Use <code>git switch</code> in newer Git versions.',
+    draw: drawBranches
+  },
+  'git merge': {
+    lines: [
+      {t:'cmd', v:'git merge feature/new-ui'},
+      {t:'out', v:'Updating a1b2c3..d4e5f6'},
+      {t:'out', v:'Fast-forward'},
+      {t:'out', v:' index.html | 12 +++++'},
+      {t:'out', v:'✅ Feature merged into main!'}
+    ],
+    action: () => {
+      pgState.commits.push({id:'m'+(pgState.commits.length+1), msg:'Merge', branch:'main', isMerge: true});
+    },
+    explain: '<strong>git merge</strong> brings changes from one branch into another. A "fast-forward" merge moves the pointer forward. A "3-way" merge creates a new merge commit.',
+    draw: drawMerge
+  },
+  'git push': {
+    lines: [
+      {t:'cmd', v:'git push origin main'},
+      {t:'out', v:'Enumerating objects: 5, done.'},
+      {t:'out', v:'Writing objects: 100% (5/5), 1.23 KiB'},
+      {t:'out', v:'  main -> main'},
+      {t:'out', v:'✅ Pushed to GitHub!'}
+    ],
+    action: () => { pgState.remoteExists = true; },
+    explain: '<strong>git push</strong> uploads your local commits to the remote repository (GitHub). This makes your work visible to teammates and backs it up online.',
+    draw: drawRemote
+  },
+  'git pull': {
+    lines: [
+      {t:'cmd', v:'git pull origin main'},
+      {t:'out', v:'remote: Enumerating objects: 3, done.'},
+      {t:'out', v:'Updating a1b2c3..e7f8g9'},
+      {t:'out', v:'2 files changed, 18 insertions(+)'},
+      {t:'out', v:'✅ Downloaded latest changes!'}
+    ],
+    action: () => {
+      pgState.commits.push({id:'p'+(pgState.commits.length+1), msg:'Pulled', branch:'main'});
+    },
+    explain: '<strong>git pull</strong> downloads changes from the remote repo and merges them into your current branch. It\'s essentially <code>git fetch</code> + <code>git merge</code> in one command.',
+    draw: drawRemote
+  }
+};
+
+function runCmd(cmd) {
+  if (!pgState.initialized && cmd !== 'git init') {
+    addTermLine('err', '⚠️  Run "git init" first to initialize a repository!');
+    return;
+  }
+  const data = cmdData[cmd];
+  if (!data) return;
+  data.action();
+  // play contextual sound
+  if (cmd === 'git push') playSound('push');
+  else if (cmd === 'git pull') playSound('pull');
+  else if (cmd === 'git commit') playSound('commit');
+  else playSound('tick');
+  // chain lines: wait for each to finish before starting next
+  function printLines(lines, idx) {
+    if (idx >= lines.length) {
+      document.getElementById('pg-explain').innerHTML = data.explain;
+      setTimeout(() => data.draw(), 80);
+      return;
+    }
+    addTermLine(lines[idx].t, lines[idx].v, () => printLines(lines, idx + 1));
+  }
+  printLines(data.lines, 0);
+}
+
+function addTermLine(type, val, onDone) {
+  const t = document.getElementById('terminal');
+  const div = document.createElement('div');
+  div.className = 'terminal-line ' + (type === 'cmd' ? 'cmd-line' : type === 'err' ? 'err-line' : 'out-line');
+  t.appendChild(div);
+  t.scrollTop = t.scrollHeight;
+  if (type === 'cmd') {
+    // typewriter char-by-char for command lines
+    let i = 0;
+    function tick() {
+      div.textContent = val.slice(0, i + 1);
+      t.scrollTop = t.scrollHeight;
+      i++;
+      if (i < val.length) setTimeout(tick, 28);
+      else if (onDone) setTimeout(onDone, 60);
+    }
+    tick();
+  } else {
+    // output + error lines: slide-in instantly
+    div.textContent = val;
+    div.style.cssText = 'opacity:0;transform:translateX(-6px);transition:opacity 0.15s ease,transform 0.15s ease;';
+    requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'none'; });
+    t.scrollTop = t.scrollHeight;
+    if (onDone) setTimeout(onDone, 20);
+  }
+}
+
+function clearSVG() {
+  const svg = document.getElementById('pg-tree-svg');
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+}
+
+function drawInit() {
+  clearSVG();
+  const svg = document.getElementById('pg-tree-svg');
+  svg.innerHTML = `
+    <rect x="10" y="40" width="90" height="50" rx="8" fill="#1c2430" stroke="#30363d"/>
+    <text x="55" y="62" text-anchor="middle" fill="#e6edf3" font-size="12">📁 project</text>
+    <text x="55" y="78" text-anchor="middle" fill="#8b949e" font-size="10">.git created</text>
+    <path d="M 105 65 L 135 65" stroke="#3fb950" stroke-width="2" marker-end="url(#pg-arr)"/>
+    <rect x="140" y="40" width="90" height="50" rx="8" fill="rgba(63,185,80,0.1)" stroke="#3fb950"/>
+    <text x="185" y="62" text-anchor="middle" fill="#3fb950" font-size="12">✅ Git Repo</text>
+    <text x="185" y="78" text-anchor="middle" fill="#8b949e" font-size="10">Ready!</text>
+    <defs><marker id="pg-arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#3fb950"/></marker></defs>
+  `;
+}
+
+function drawStage() {
+  clearSVG();
+  const svg = document.getElementById('pg-tree-svg');
+  svg.innerHTML = `
+    <rect x="5" y="35" width="85" height="55" rx="8" fill="#1c2430" stroke="#30363d"/>
+    <text x="47" y="57" text-anchor="middle" fill="#8b949e" font-size="10">Working Dir</text>
+    <text x="47" y="72" text-anchor="middle" fill="#e6edf3" font-size="10">index.html</text>
+    <text x="47" y="84" text-anchor="middle" fill="#e6edf3" font-size="10">style.css</text>
+    <path d="M 92 63 L 122 63" stroke="#58a6ff" stroke-width="2" marker-end="url(#pg-arr2)"/>
+    <text x="107" y="56" text-anchor="middle" fill="#58a6ff" font-size="9">add</text>
+    <rect x="127" y="35" width="80" height="55" rx="8" fill="rgba(88,166,255,0.1)" stroke="#58a6ff"/>
+    <text x="167" y="57" text-anchor="middle" fill="#58a6ff" font-size="10">Staging Area</text>
+    <text x="167" y="72" text-anchor="middle" fill="#58a6ff" font-size="10">index.html ✓</text>
+    <text x="167" y="84" text-anchor="middle" fill="#58a6ff" font-size="10">style.css ✓</text>
+    <defs><marker id="pg-arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#58a6ff"/></marker></defs>
+  `;
+}
+
+function drawCommits() {
+  clearSVG();
+  const c = pgState.commits;
+  const svg = document.getElementById('pg-tree-svg');
+  const startX = 30, gap = 70, y = 60, r = 14;
+  let html = `<defs><marker id="pg-arr3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#30363d"/></marker></defs>`;
+  if (c.length === 0) {
+    html += `<text x="170" y="65" text-anchor="middle" fill="#8b949e" font-size="12">No commits yet. Add and commit files.</text>`;
+  } else {
+    for (let i = 0; i < c.length; i++) {
+      const x = startX + i * gap;
+      // connector from right edge of previous circle to left edge of this one
+      if (i > 0) {
+        const prevX = startX + (i - 1) * gap;
+        html += `<line x1="${prevX + r}" y1="${y}" x2="${x - r}" y2="${y}" stroke="#30363d" stroke-width="2"/>`;
+      }
+      const fill   = c[i].isMerge ? 'rgba(247,129,102,0.2)' : 'rgba(88,166,255,0.15)';
+      const stroke = c[i].isMerge ? '#f78166' : '#58a6ff';
+      html += `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
+      html += `<text x="${x}" y="${y + 4}" text-anchor="middle" fill="#e6edf3" font-size="10" font-weight="bold">${c[i].id}</text>`;
+      html += `<text x="${x}" y="${y + 24}" text-anchor="middle" fill="#8b949e" font-size="9">${c[i].msg}</text>`;
+    }
+    const lastX = startX + (c.length - 1) * gap;
+    html += `<rect x="${lastX - 28}" y="${y - 32}" width="56" height="16" rx="4" fill="rgba(247,129,102,0.2)" stroke="#f78166"/>`;
+    html += `<text x="${lastX}" y="${y - 20}" text-anchor="middle" fill="#f78166" font-size="9" font-weight="bold">HEAD→main</text>`;
+  }
+  svg.innerHTML = html;
+}
+
+function drawBranches() {
+  clearSVG();
+  const svg = document.getElementById('pg-tree-svg');
+  svg.innerHTML = `
+    <line x1="20" y1="60" x2="200" y2="60" stroke="#30363d" stroke-width="2"/>
+    <text x="5" y="58" fill="#58a6ff" font-size="9" font-weight="bold">main</text>
+    <circle cx="50" cy="60" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="50" y="64" text-anchor="middle" fill="#8b949e" font-size="9">c1</text>
+    <circle cx="110" cy="60" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="110" y="64" text-anchor="middle" fill="#8b949e" font-size="9">c2</text>
+    <line x1="110" y1="48" x2="170" y2="25" stroke="#3fb950" stroke-width="2"/>
+    <line x1="170" y1="25" x2="230" y2="25" stroke="#3fb950" stroke-width="2"/>
+    <circle cx="170" cy="25" r="12" fill="#1c2430" stroke="#3fb950" stroke-width="2"/>
+    <text x="170" y="29" text-anchor="middle" fill="#3fb950" font-size="9">f1</text>
+    <circle cx="230" cy="25" r="12" fill="rgba(63,185,80,0.2)" stroke="#3fb950" stroke-width="2.5"/>
+    <text x="230" y="29" text-anchor="middle" fill="#3fb950" font-size="9">HEAD</text>
+    <text x="215" y="14" fill="#3fb950" font-size="9" font-weight="bold">feature/new-ui</text>
+    <circle cx="170" cy="60" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="170" y="64" text-anchor="middle" fill="#8b949e" font-size="9">c3</text>
+  `;
+}
+
+function drawMerge() {
+  clearSVG();
+  const svg = document.getElementById('pg-tree-svg');
+  svg.innerHTML = `
+    <line x1="20" y1="70" x2="310" y2="70" stroke="#30363d" stroke-width="2"/>
+    <circle cx="50" cy="70" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="50" y="74" text-anchor="middle" fill="#8b949e" font-size="9">c1</text>
+    <circle cx="110" cy="70" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="110" y="74" text-anchor="middle" fill="#8b949e" font-size="9">c2</text>
+    <line x1="110" y1="58" x2="170" y2="30" stroke="#3fb950" stroke-width="2"/>
+    <circle cx="170" cy="30" r="12" fill="#1c2430" stroke="#3fb950" stroke-width="2"/>
+    <text x="170" y="34" text-anchor="middle" fill="#3fb950" font-size="9">f1</text>
+    <circle cx="240" cy="30" r="12" fill="#1c2430" stroke="#3fb950" stroke-width="2"/>
+    <text x="240" y="34" text-anchor="middle" fill="#3fb950" font-size="9">f2</text>
+    <line x1="170" y1="30" x2="240" y2="30" stroke="#3fb950" stroke-width="2"/>
+    <circle cx="170" cy="70" r="12" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/>
+    <text x="170" y="74" text-anchor="middle" fill="#8b949e" font-size="9">c3</text>
+    <path d="M 240 42 Q 280 56 300 70" stroke="#f78166" stroke-width="2" fill="none"/>
+    <circle cx="300" cy="70" r="14" fill="rgba(247,129,102,0.2)" stroke="#f78166" stroke-width="2.5"/>
+    <text x="300" y="67" text-anchor="middle" fill="#f78166" font-size="8" font-weight="bold">MERGE</text>
+    <text x="300" y="78" text-anchor="middle" fill="#f78166" font-size="8">main</text>
+  `;
+}
+
+function drawRemote() {
+  clearSVG();
+  const svg = document.getElementById('pg-tree-svg');
+  svg.innerHTML = `
+    <rect x="10" y="30" width="100" height="50" rx="8" fill="#1c2430" stroke="#30363d"/>
+    <text x="60" y="52" text-anchor="middle" fill="#e6edf3" font-size="12">💻 Local</text>
+    <text x="60" y="68" text-anchor="middle" fill="#8b949e" font-size="10">${pgState.commits.length} commit(s)</text>
+    <rect x="230" y="30" width="100" height="50" rx="8" fill="rgba(88,166,255,0.1)" stroke="#58a6ff"/>
+    <text x="280" y="52" text-anchor="middle" fill="#58a6ff" font-size="12">☁️ GitHub</text>
+    <text x="280" y="68" text-anchor="middle" fill="#8b949e" font-size="10">origin/main</text>
+    <path d="M 112 48 Q 170 30 228 48" stroke="#3fb950" stroke-width="2" fill="none" stroke-dasharray="4,2">
+      <animate attributeName="stroke-dashoffset" from="50" to="0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <text x="170" y="36" text-anchor="middle" fill="#3fb950" font-size="10">git push ↑</text>
+    <path d="M 228 62 Q 170 80 112 62" stroke="#f78166" stroke-width="2" fill="none" stroke-dasharray="4,2">
+      <animate attributeName="stroke-dashoffset" from="0" to="50" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <text x="170" y="92" text-anchor="middle" fill="#f78166" font-size="10">git pull ↓</text>
+  `;
+}
+
+// ===== QUIZ =====
+const quizData = [
+  {
+    q: "What does 'git init' do?",
+    options: ["Uploads code to GitHub","Creates a new Git repository","Creates a new branch","Downloads a repository"],
+    correct: 1,
+    explain: "git init initializes a new Git repository in the current directory by creating a .git folder."
+  },
+  {
+    q: "What is the Staging Area?",
+    options: ["A backup of your files","A place to review changes before committing","The GitHub server","The commit history"],
+    correct: 1,
+    explain: "The Staging Area (index) holds changes you've selected to include in your next commit, before they become permanent."
+  },
+  {
+    q: "What command creates a snapshot of your staged files?",
+    options: ["git push","git stage","git commit","git save"],
+    correct: 2,
+    explain: "git commit saves a permanent snapshot of staged files with a message and unique SHA hash."
+  },
+  {
+    q: "What does HEAD point to?",
+    options: ["The first commit","Your GitHub profile","The current commit/branch position","The remote server"],
+    correct: 2,
+    explain: "HEAD is a special pointer that shows your current position in the commit history — usually the latest commit on your current branch."
+  },
+  {
+    q: "What's the difference between Git and GitHub?",
+    options: [
+      "They are the same thing",
+      "Git is the version control tool, GitHub is a cloud platform that hosts repos",
+      "GitHub is the tool, Git is the platform",
+      "Git only works on Linux"
+    ],
+    correct: 1,
+    explain: "Git is a local version control tool. GitHub is a cloud platform that hosts Git repositories and adds collaboration features."
+  },
+  {
+    q: "What does 'git push' do?",
+    options: ["Downloads changes from remote","Deletes a branch","Uploads local commits to the remote repository","Creates a new commit"],
+    correct: 2,
+    explain: "git push uploads your local commits to the remote repository (like GitHub), making them available to teammates."
+  },
+  {
+    q: "What is a Pull Request?",
+    options: [
+      "Using git pull command",
+      "A request to download files",
+      "A formal request to merge your branch changes into another branch",
+      "Pulling changes from staging"
+    ],
+    correct: 2,
+    explain: "A Pull Request (PR) is a GitHub feature where you propose merging your branch into another, allowing team code review before the merge."
+  },
+  {
+    q: "What is the purpose of a branch?",
+    options: [
+      "To backup files",
+      "To work on features independently without affecting the main codebase",
+      "To push code to GitHub",
+      "To store commit messages"
+    ],
+    correct: 1,
+    explain: "Branches let you work on new features or fixes in isolation. You can merge them back when ready, without disrupting the stable main branch."
+  },
+  {
+    q: "What does 'git clone' do?",
+    options: [
+      "Copies a file within your project",
+      "Creates a local copy of a remote repository",
+      "Creates a new branch",
+      "Deletes a repository"
+    ],
+    correct: 1,
+    explain: "git clone downloads a complete copy of a remote repository to your local machine, including all history."
+  },
+  {
+    q: "What happens during a merge conflict?",
+    options: [
+      "Git automatically picks one version",
+      "The branch is deleted",
+      "Two branches changed the same lines differently, requiring manual resolution",
+      "The commit is undone"
+    ],
+    correct: 2,
+    explain: "A merge conflict occurs when Git can't automatically determine which version to keep. You must manually edit the file, then add and commit to resolve it."
+  }
+];
+
+let currentQ = 0;
+let answers = {};
+let quizStarted = false;
+
+function initQuiz() {
+  if(quizStarted) return;
+  quizStarted = true;
+  currentQ = 0;
+  answers = {};
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizData[currentQ];
+  document.getElementById('question-box').innerHTML = `
+    <div class="q-num">Question ${currentQ + 1} of ${quizData.length}</div>
+    <div class="q-text">${q.q}</div>
+  `;
+  const opts = document.getElementById('answer-options');
+  opts.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-option';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(i, btn, q);
+    if(answers[currentQ] !== undefined) {
+      btn.disabled = true;
+      if(i === q.correct) btn.classList.add('correct');
+      if(answers[currentQ] === i && i !== q.correct) btn.classList.add('wrong');
+    }
+    opts.appendChild(btn);
+  });
+
+  document.getElementById('btn-prev').style.display = currentQ > 0 ? 'block' : 'none';
+  document.getElementById('btn-next').style.display = (answers[currentQ] !== undefined && currentQ < quizData.length-1) ? 'block' : 'none';
+  document.getElementById('btn-submit').style.display = (currentQ === quizData.length-1 && answers[currentQ] !== undefined) ? 'block' : 'none';
+  document.getElementById('btn-restart').style.display = 'none';
+
+  const pct = Math.round((Object.keys(answers).length / quizData.length) * 100);
+  document.getElementById('quiz-progress-bar').style.width = pct + '%';
+  updateScore();
+}
+
+function selectAnswer(i, btn, q) {
+  if(answers[currentQ] !== undefined) return;
+  answers[currentQ] = i;
+  const opts = document.querySelectorAll('.answer-option');
+  opts.forEach(b => b.disabled = true);
+  opts[q.correct].classList.add('correct');
+  if(i !== q.correct) btn.classList.add('wrong');
+  // play sound after animation starts
+  setTimeout(() => playSound(i === q.correct ? 'correct' : 'wrong'), 80);
+
+  document.getElementById('btn-next').style.display = currentQ < quizData.length-1 ? 'block' : 'none';
+  document.getElementById('btn-submit').style.display = currentQ === quizData.length-1 ? 'block' : 'none';
+  updateScore();
+}
+
+function updateScore() {
+  let score = 0;
+  quizData.forEach((q,i) => { if(answers[i] === q.correct) score++; });
+  document.getElementById('score-display').textContent = 'Score: ' + score + '/' + Object.keys(answers).length;
+}
+
+function nextQuestion() {
+  if(currentQ < quizData.length-1) { currentQ++; renderQuestion(); }
+}
+function prevQuestion() {
+  if(currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+function submitQuiz() {
+  let score = 0;
+  quizData.forEach((q,i) => { if(answers[i] === q.correct) score++; });
+  const pct = Math.round((score / quizData.length) * 100);
+  const passed = score >= 7;
+
+  document.getElementById('question-box').style.display = 'none';
+  document.getElementById('answer-options').style.display = 'none';
+  document.getElementById('quiz-nav').style.display = 'none';
+
+  const resultEl = document.getElementById('quiz-result');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    <div class="quiz-result">
+      <div class="result-emoji">${passed ? '🎉' : '📚'}</div>
+      <h2>${passed ? 'Excellent!' : 'Keep Learning!'}</h2>
+      <p>${passed ? 'You have a solid understanding of Git & GitHub!' : 'Review the sections and try again. You\'ve got this!'}</p>
+      <div class="result-score">${score}/${quizData.length}</div>
+      <p style="margin-top: 8px; font-size: 14px;">${pct}% correct</p>
+      <button class="btn btn-primary" style="max-width: 200px; margin: 20px auto 0; display: block;" onclick="restartQuiz()">Try Again</button>
+    </div>
+  `;
+
+  if(passed) launchConfetti();
+}
+
+function restartQuiz() {
+  quizStarted = false;
+  answers = {};
+  document.getElementById('question-box').style.display = 'block';
+  document.getElementById('answer-options').style.display = 'flex';
+  document.querySelector('.quiz-nav').style.display = 'flex';
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-progress-bar').style.width = '0%';
+  document.getElementById('score-display').textContent = 'Score: 0/0';
+  initQuiz();
+}
+
+// ===== CONFETTI =====
+function launchConfetti() {
+  const container = document.getElementById('confetti-container');
+  container.innerHTML = '';
+  const colors = ['#58a6ff','#3fb950','#f78166','#d2a8ff','#ffa657','#ffffff'];
+  const shapes = ['2px','50%','0']; // square, circle, triangle-ish
+  for (let i = 0; i < 100; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const size = 5 + Math.random() * 9;
+    const drift = (Math.random() - 0.5) * 200; // horizontal drift px
+    const startX = Math.random() * 100;
+    const dur = 1.8 + Math.random() * 2.2;
+    const delay = Math.random() * 1.2;
+    const rotate = Math.floor(Math.random() * 720);
+    const rotateDir = Math.random() > 0.5 ? rotate : -rotate;
+    piece.style.cssText = `
+      left: ${startX}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      width: ${size}px;
+      height: ${size * (0.4 + Math.random() * 0.8)}px;
+      border-radius: ${shapes[Math.floor(Math.random() * shapes.length)]};
+      --drift: ${drift}px;
+      --rot: ${rotateDir}deg;
+      --dur: ${dur}s;
+      animation-delay: ${delay}s;
+      opacity: 0;
+    `;
+    container.appendChild(piece);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 6000);
+}
+
+// ===== PWA MANIFEST & SERVICE WORKER =====
+const manifestData = {
+  name: "Git Visual Pro",
+  short_name: "Git Pro",
+  description: "Learn Git & GitHub visually",
+  theme_color: "#0d1117",
+  background_color: "#0d1117",
+  display: "standalone",
+  orientation: "portrait",
+  start_url: "./",
+  icons: [
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230d1117'/%3E%3Ctext x='96' y='130' font-size='120' text-anchor='middle'%3E🌿%3C/text%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" },
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230d1117'/%3E%3Ctext x='256' y='350' font-size='300' text-anchor='middle'%3E🌿%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml" }
+  ]
+};
+
+const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(blob);
+const link = document.createElement('link');
+link.rel = 'manifest'; link.href = manifestURL;
+document.head.appendChild(link);
+
+// Inline Service Worker
+const swCode = `
+const CACHE = 'git-visual-pro-v1';
+const FILES = ['/'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => new Response('Offline', {headers:{'Content-Type':'text/plain'}}))));
+});
+`;
+const swBlob = new Blob([swCode], {type: 'application/javascript'});
+const swURL = URL.createObjectURL(swBlob);
+
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(swURL).catch(()=>{});
+}
+
+// Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1c2430;border-bottom:1px solid #30363d;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:2000;font-size:13px;';
+  banner.innerHTML = '<span>🌿 Install Git Visual Pro for offline use</span><button onclick="installApp()" style="background:#58a6ff;color:#000;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:12px;">Install</button>';
+  banner.id = 'install-banner';
+  document.body.prepend(banner);
+});
+function installApp() {
+  if(deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  const b = document.getElementById('install-banner');
+  if(b) b.remove();
+}
+
+// ===== COPY-TO-CLIPBOARD =====
+function initCopyButtons() {
+  document.querySelectorAll('.code-block').forEach(block => {
+    // skip if already has a button
+    if (block.querySelector('.copy-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.innerHTML = '⎘ Copy';
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      // extract text content, strip HTML tags
+      const text = block.innerText.replace(/⎘ Copy|✓ Copied/g, '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.innerHTML = '✓ Copied';
+        btn.classList.add('copied');
+        playSound('tick');
+        setTimeout(() => {
+          btn.innerHTML = '⎘ Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        // fallback for non-https
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.innerHTML = '✓ Copied';
+        btn.classList.add('copied');
+        playSound('tick');
+        setTimeout(() => { btn.innerHTML = '⎘ Copy'; btn.classList.remove('copied'); }, 2000);
+      });
+    };
+    block.appendChild(btn);
+  });
+}
+
+// ===== SOUND SYSTEM =====
+let soundEnabled = false;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSound(type) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'tick') {
+      // soft click: short sine blip
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.06);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } else if (type === 'commit') {
+      // satisfying thunk: two-tone
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.18);
+    } else if (type === 'push') {
+      // rising whoosh
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.22);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.24);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.24);
+    } else if (type === 'pull') {
+      // falling whoosh
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.22);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.24);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.24);
+    } else if (type === 'correct') {
+      // cheerful ding-dong
+      [0, 0.12].forEach((t, i) => {
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.type = 'sine';
+        o2.frequency.value = i === 0 ? 660 : 880;
+        g2.gain.setValueAtTime(0.15, ctx.currentTime + t);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.18);
+        o2.start(ctx.currentTime + t);
+        o2.stop(ctx.currentTime + t + 0.18);
+      });
+      return; // early return (multi-note)
+    } else if (type === 'wrong') {
+      // low buzzy thud
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.18);
+    } else if (type === 'nav') {
+      // subtle soft tap
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, ctx.currentTime);
+      gain.gain.setValueAtTime(0.07, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.05);
+    }
+  } catch(e) {}
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('sound-toggle');
+  const icon = document.getElementById('sound-icon');
+  const label = document.getElementById('sound-label');
+  btn.classList.toggle('muted', !soundEnabled);
+  icon.textContent = soundEnabled ? '🔊' : '🔇';
+  label.textContent = soundEnabled ? 'Sounds on' : 'Sounds off';
+  if (soundEnabled) {
+    // warm up audio context on first enable
+    getAudioCtx();
+    playSound('tick');
+  }
+}
+
+// hook sounds into existing actions
+// NOTE: sounds are called directly inside runCmd, selectAnswer, and navigate below
+// (function re-declaration wrappers cause hoisting/recursion bugs — avoided here)
+
+// ===== HINT TOOLTIP SYSTEM =====
+const hintSeenSet = new Set();
+const hintDefs = {
+  git:        { text: 'Click the files to move them through Git stages!',  icon: '👆', anchorSelector: '#wd-box' },
+  branch:     { text: 'Click each step to animate the branching diagram',   icon: '👆', anchorSelector: '#branch-steps' },
+  playground: { text: 'Click any command to see it run live!',              icon: '🎮', anchorSelector: '.cmd-buttons' },
+  quiz:       { text: 'Select an answer — get instant feedback!',           icon: '🧠', anchorSelector: '.answer-options' },
+};
+
+let hintTimer = null;
+
+function showHint(page) {
+  const def = hintDefs[page];
+  if (!def || hintSeenSet.has(page)) return;
+  hintSeenSet.add(page);
+
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => {
+    const anchor = document.querySelector(def.anchorSelector);
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+
+    const bubble = document.createElement('div');
+    bubble.className = 'hint-bubble';
+    bubble.innerHTML = `<span class="hint-icon">${def.icon}</span><span>${def.text}</span>`;
+    // position just above the anchor element, clamped to viewport
+    bubble.style.left = Math.max(12, rect.left) + 'px';
+    bubble.style.top  = Math.max(12, rect.top - 60) + 'px';
+    document.getElementById('hint-container').appendChild(bubble);
+
+    // clamp right edge overflow after render
+    requestAnimationFrame(() => {
+      const bRect = bubble.getBoundingClientRect();
+      if (bRect.right > window.innerWidth - 12) {
+        bubble.style.left = (window.innerWidth - bRect.width - 12) + 'px';
+      }
+    });
+
+    // auto-dismiss after 3.5s
+    const dismiss = () => {
+      bubble.classList.add('hint-hide');
+      setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 320);
+    };
+    const autoT = setTimeout(dismiss, 3500);
+    bubble.addEventListener('click', () => { clearTimeout(autoT); dismiss(); });
+    playSound('nav');
+  }, 700);
+}
+
+// ===== INIT =====
+initCopyButtons();
+revealOnScroll();
+</script>
+</body>
+</html>
